@@ -1,7 +1,6 @@
 library(tidyverse)
 library(janitor)
 
-
 all_data <- read.csv("batch.csv")
 
 all_data <- all_data %>% 
@@ -21,7 +20,7 @@ embargoed_data <- all_data %>%
   arrange(embargo_date)
 
 filtered_data <- embargoed_data %>% 
-  select(article_id, title, authors, item_type, handle, embargo_reason, embargo_date, acceptance_date, publication_date, version) %>% 
+  select(article_id, title, authors, item_type, handle, embargo_reason, embargo_date, acceptance_date, publication_date, first_online_date, version) %>% 
   mutate(
     months_to_embargo = case_when(
       !is.na(embargo_date) ~ interval(today(), embargo_date) %/% months(1),
