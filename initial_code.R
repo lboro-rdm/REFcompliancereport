@@ -12,7 +12,6 @@ embargoed_data <- all_data %>%
     is_embargoed == 1,
     is.na(embargo_date) | embargo_date > today(),
     item_type %in% c(
-      "chapter",
       "journal contribution",
       "conference contribution"
     )
