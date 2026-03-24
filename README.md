@@ -5,7 +5,7 @@ Build file:
 1.	Batch download all public items from repo
 2.  Excludes items pre-2021
 3.	Include only items that have an embargo date set in the future / permanent embargo
-4.	Include only journal articles, chapters, and conference papers with ISSNs
+4.	Include only journal articles and conference papers with ISSNs
 
 Generate reports:
 
@@ -43,7 +43,7 @@ Report columns:
   - Title
   - Item type
   - Handle
-  - Posted date
+  - Posted date (don't have :( )
   - Embargo date
   - Acceptance date
   - Publication date
