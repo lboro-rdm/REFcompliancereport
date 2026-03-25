@@ -61,6 +61,11 @@ shinyServer(function(input, output, session) {
         custom_pub_date, first_online_date, version
       ) %>%
       mutate(
+        handle = if_else(
+          !is.na(handle),
+          paste0("https://hdl.handle.net/", handle),
+          NA_character_
+        ),
         months_to_embargo = case_when(
           !is.na(embargo_date) ~ interval(today(), embargo_date) %/% months(1),
           TRUE ~ NA_integer_
@@ -68,7 +73,7 @@ shinyServer(function(input, output, session) {
       )
   })
   
-  # Reactive: Permanent embargo report
+  # Reactive: Permanent embargo report - renamed to Correct Version Report
   perm_embargo <- reactive({
     req(filtered_data())
     filtered_data() %>%
@@ -80,16 +85,17 @@ shinyServer(function(input, output, session) {
           interval(timeline_pub_date, Sys.Date()) %/% months(1) <= 3 ~ "AMBER",
           interval(timeline_pub_date, Sys.Date()) %/% months(1) > 3 ~ "GREY"
         ),
+        flag = factor(flag, levels = c("RED", "AMBER", "GREEN", "GREY")),
         status = "",
         comment = ""
-      )
+      ) %>%
+      arrange(flag)
   })
   
-  # Reactive: Temporary embargo report
+  # Reactive: Temporary embargo report - Renamed to REF Compliant Embargo Report
   temp_embargo <- reactive({
     req(filtered_data())
     filtered_data() %>%
-      # Clean school names and assign category
       mutate(
         school_clean = str_remove_all(school, '\\[|\\]|"|\\\\') %>% str_trim(),
         category = case_when(
@@ -99,16 +105,16 @@ shinyServer(function(input, output, session) {
         ),
         timeline = interval(timeline_pub_date, embargo_date) %/% months(1),
         flag = case_when(
-          is.na(timeline_pub_date) ~ "GREEN",
-          # Pre-2026
-          year(timeline_pub_date) < 2026 & category == "STEM" & timeline >= 12 ~ "RED",
-          year(timeline_pub_date) < 2026 & category == "HASS" & timeline >= 24 ~ "RED",
-          # 2026+
-          year(timeline_pub_date) >= 2026 & category == "STEM" & timeline >= 6 ~ "RED",
-          year(timeline_pub_date) >= 2026 & category == "HASS" & timeline >= 12 ~ "RED",
-          TRUE ~ "AMBER"
-        )
-      )
+          is.na(timeline_pub_date) ~ "IGNORE",
+          year(timeline_pub_date) < 2026 & category == "STEM" & timeline >= 12 ~ "CONTACT RIO",
+          year(timeline_pub_date) < 2026 & category == "HASS" & timeline >= 24 ~ "CONTACT RIO",
+          year(timeline_pub_date) >= 2026 & category == "STEM" & timeline >= 6 ~ "CONTACT RIO",
+          year(timeline_pub_date) >= 2026 & category == "HASS" & timeline >= 12 ~ "CONTACT RIO",
+          TRUE ~ "COMPLIANT"
+        ),
+        flag = factor(flag, levels = c("CHECK", "CONTACT RIO", "COMPLIANT", "IGNORE"))
+      ) %>%
+      arrange(flag)
   })
   
   # Reactive value to store the currently active report

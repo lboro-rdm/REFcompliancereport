@@ -1,5 +1,6 @@
 library(shiny)
 library(DT)
+library(dadjoke)
 
 
 shinyUI(fluidPage(
@@ -15,10 +16,12 @@ shinyUI(fluidPage(
       h3("Step 1: upload the batch file"),
       fileInput("batch_file", "batch.csv", accept = c(".csv")),
       p("Wait for the upload to be complete before moving onto Step 2."),
+      p("Here's a dad joke while you wait:"),
+      paste(capture.output(dadjoke::dadjoke()), collapse = "\n"),
       h3("Step 2: choose your report"),
-      actionButton("permReportBtn", "Generate Permanent Embargo Report"),
+      actionButton("permReportBtn", "Correct Version Report"),
       br(), br(),
-      actionButton("tempReportBtn", "Generate Temporary Embargo Report"),
+      actionButton("tempReportBtn", "REF Compliant Embargo Report"),
       br(), br(),
       h3("Step 3: download your report"),
       downloadButton("downloadReport", "Download Report")
@@ -42,7 +45,7 @@ shinyUI(fluidPage(
              tags$li("Include only items that have an embargo date set in the future / permanent embargo"),
              tags$li("Include only journal articles and conference papers with ISSNs")
            ),
-           p("Report 1: Permanent embargo report"),
+           p("Report 1: Correct version report report"),
            tags$ul(
              tags$li("(Assumed that these items do not have the correct version of the file)"),
              tags$li("Includes all items without an embargo end date"),
@@ -52,21 +55,23 @@ shinyUI(fluidPage(
              tags$li("Items that are 3+ months of publication, flagged as GREY"),
              tags$li("Items with no publication date, flagged as GREEN")
            ),
-           p("Report 2: Temporary embargo report"),
+           p("Report 2: REF compliant embargo report"),
            tags$ul(
              tags$li("Lists all items with a temporary embargo"),
              tags$li("Includes timeline column, difference between embargo date & published date"),
-             tags$li("No publication date GREEN"),
-             tags$li("Flagged RED",
+             tags$li("No publication date IGNORE"),
+             tags$li("Flagged CONTACT RIO",
                      tags$ul(
                        tags$li("Pre-2026, STEM, 12+ months"),
                        tags$li("Pre-2026, HASS, 24+ months"),
                        tags$li("2026+ STEM, 6+ months"),
                        tags$li("2026+ HASS, 12+ months")
                      )
-             )
+             ),
+             tags$li("Dates before the above timelines COMPLIANT"),
+             tags$li("Unsure if STEM or HASS CHECK")
            ),
-           p("Code last updated: 2026-03-24")
+           p("Code last updated: 2026-03-25")
   )
   
   )

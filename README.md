@@ -9,7 +9,7 @@ Build file:
 
 Generate reports:
 
-Report 1: Permanent embargo report: 
+Report 1: Correct version report:
   - (Assumed that these items do not have the correct version of the file)
   - Includes all items without an embargo end date
   - Excludes items posted 3+ months after publication
@@ -25,15 +25,20 @@ Report 2: Change report
   - Lists items that were on permanent embargo report, but now are either: (1) unpublished from the Repository, (2) on temporary embargo, (3) no embargo
   - Will include columns for status & comment pulled from previous permanent embargo report
   
-Report 3: Temporary report
+Report 3: REF compliant embargo report
   - Lists all items with a temporary embargo
   - Includes timeline column, difference between embargo date & published date
-    - No publication date GREEN
-    - Flagged RED
+    - No publication date IGNORE
+    - Flagged CONTACT RIO
       - Pre-2026, STEM, 12+ months
       - Pre-2026, HASS, 24+ months
       - 2026+ STEM, 6+ months
       - 2026+ HASS, 12+ months
+    - Dates before the above timelines COMPLIANT
+    - Unsure if STEM or HASS CHECK
+
++ sorted by category
++ handle to URL
 
 Sorted by embargo date
 Report columns:
