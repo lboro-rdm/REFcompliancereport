@@ -79,16 +79,18 @@ shinyServer(function(input, output, session) {
     filtered_data() %>%
       filter(is.na(embargo_date)) %>%
       mutate(
+        days_old = as.numeric(Sys.Date() - timeline_pub_date),
         flag = case_when(
           is.na(timeline_pub_date) ~ "GREEN",
-          interval(timeline_pub_date, Sys.Date()) %/% months(1) <= 1 ~ "RED",
-          interval(timeline_pub_date, Sys.Date()) %/% months(1) <= 3 ~ "AMBER",
-          interval(timeline_pub_date, Sys.Date()) %/% months(1) > 3 ~ "GREY"
+          days_old <= 60 ~ "AMBER",
+          days_old <= 90 ~ "RED",
+          TRUE ~ "GREY"
         ),
         flag = factor(flag, levels = c("RED", "AMBER", "GREEN", "GREY")),
         status = "",
         comment = ""
       ) %>%
+      select(-days_old) %>%
       arrange(flag)
   })
   

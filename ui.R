@@ -50,8 +50,8 @@ shinyUI(fluidPage(
              tags$li("(Assumed that these items do not have the correct version of the file)"),
              tags$li("Includes all items without an embargo end date"),
              tags$li("Excludes items posted 3+ months after publication"),
-             tags$li("Items that are within 0-1 months of publication, flagged as RED"),
-             tags$li("Items that are within 2-3 months of publication, flagged as AMBER"),
+             tags$li("Items that are within 61 to 90 days after publication, flagged as RED"),
+             tags$li("Items that are within 0 to 60 days after publication, flagged as AMBER"),
              tags$li("Items that are 3+ months of publication, flagged as GREY"),
              tags$li("Items with no publication date, flagged as GREEN")
            ),

@@ -50,3 +50,4 @@ rsconnect/
 
 # csv files
 *.csv
+.positai
