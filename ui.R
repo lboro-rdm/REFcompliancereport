@@ -1,11 +1,27 @@
 library(shiny)
 library(DT)
 library(dadjoke)
+library(bslib)
 
 
 shinyUI(fluidPage(
   
   titlePanel("REF Compliance Reports"),
+  
+  theme = bs_theme(
+    version      = 5,
+    bg           = "#0f1117",
+    fg           = "#e8eaf0",
+    primary      = "#361163",
+    secondary    = "#8d9c27",
+    base_font    = font_google("IBM Plex Mono"),
+    heading_font = font_google("Space Mono"),
+    font_scale   = 0.92
+  ),
+  
+  tags$style(HTML("
+  .progress-bar { color: #e8eaf0 !important; }
+")),
 
   tabsetPanel(
     
@@ -13,11 +29,13 @@ shinyUI(fluidPage(
     
   sidebarLayout(
     sidebarPanel(
-      h3("Step 1: upload the batch file"),
+      h3("Step 1a: upload the batch file"),
       fileInput("batch_file", "batch.csv", accept = c(".csv")),
       p("Wait for the upload to be complete before moving onto Step 2."),
       p("Here's a dad joke while you wait:"),
       paste(capture.output(dadjoke::dadjoke()), collapse = "\n"),
+      h3("Step 1b: upload the missing pubs file"),
+      fileInput("missing_pubs_file", "missing_pubs.csv", accept = c(".csv")),
       h3("Step 2: choose your report"),
       actionButton("permReportBtn", "Correct Version Report"),
       br(), br(),

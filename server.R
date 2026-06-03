@@ -38,6 +38,12 @@ shinyServer(function(input, output, session) {
       )
   })
   
+  missing_pubs <- reactive({
+    req(input$missing_pubs_file)
+    read.csv(input$missing_pubs_file$datapath) %>%
+      clean_names()
+  })
+  
   # Reactive: filtered embargoed data
   embargoed_data <- reactive({
     req(all_data())
@@ -76,6 +82,13 @@ shinyServer(function(input, output, session) {
   # Reactive: Permanent embargo report - renamed to Correct Version Report
   perm_embargo <- reactive({
     req(filtered_data())
+    
+    missing_handles <- if (!is.null(input$missing_pubs_file)) {
+      missing_pubs()$handle
+    } else {
+      character(0)
+    }
+    
     filtered_data() %>%
       filter(is.na(embargo_date)) %>%
       mutate(
@@ -87,6 +100,11 @@ shinyServer(function(input, output, session) {
           TRUE ~ "GREY"
         ),
         flag = factor(flag, levels = c("RED", "AMBER", "GREEN", "GREY")),
+        flag = if_else(
+          flag == "GREEN" & handle %in% missing_handles,
+          factor("GREEN - MISSING PUB", levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB")),
+          flag
+        ),
         status = "",
         comment = ""
       ) %>%
