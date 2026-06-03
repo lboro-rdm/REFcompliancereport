@@ -36,6 +36,10 @@ shinyUI(fluidPage(
       paste(capture.output(dadjoke::dadjoke()), collapse = "\n"),
       h3("Step 1b: upload the missing pubs file"),
       fileInput("missing_pubs_file", "missing_pubs.csv", accept = c(".csv")),
+      h3("Step 1c: upload the missing pubs archive file"),
+      fileInput("missing_pubs_archive_file", "archive.csv", accept = c(".csv")),
+      h3("Step 1d: upload the missing pubs non-REF compliantfile"),
+      fileInput("missing_pubs_ref_file", "ref[.csv", accept = c(".csv")),
       h3("Step 2: choose your report"),
       actionButton("permReportBtn", "Correct Version Report"),
       br(), br(),
@@ -71,7 +75,10 @@ shinyUI(fluidPage(
              tags$li("Items that are within 61 to 90 days after publication, flagged as RED"),
              tags$li("Items that are within 0 to 60 days after publication, flagged as AMBER"),
              tags$li("Items that are 3+ months of publication, flagged as GREY"),
-             tags$li("Items with no publication date, flagged as GREEN")
+             tags$li("Items with no publication date, flagged as GREEN"),
+             tags$li("Items with no publication date, but found on Missing Pubs, flagged as GREEN - MISSING PUB"),
+             tags$li("Items with no publication date, but found on Missing Pubs Archive flagged as GREEN - ARCHIVE"),
+             tags$li("Items with no publication date, but found on Missing Pubs non-REF compliant, flagged as GREEN - NON-REF COMPLIANT")
            ),
            p("Report 2: REF compliant embargo report"),
            tags$ul(

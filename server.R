@@ -44,6 +44,20 @@ shinyServer(function(input, output, session) {
       clean_names()
   })
   
+  missing_pubs_archive <- reactive({
+    req(input$missing_pubs_archive_file)
+    read.csv(input$missing_pubs_archive_file$datapath) %>%
+      clean_names() %>%
+      rename(handle = id)
+  })
+  
+  missing_pubs_ref <- reactive({
+    req(input$missing_pubs_ref_file)
+    read.csv(input$missing_pubs_ref_file$datapath) %>%
+      clean_names() %>%
+      rename(handle = id)
+  })
+  
   # Reactive: filtered embargoed data
   embargoed_data <- reactive({
     req(all_data())
@@ -89,6 +103,18 @@ shinyServer(function(input, output, session) {
       character(0)
     }
     
+    archive_handles <- if (!is.null(input$missing_pubs_archive_file)) {
+      missing_pubs_archive()$handle
+    } else {
+      character(0)
+    }
+    
+    ref_handles <- if (!is.null(input$missing_pubs_ref_file)) {
+      missing_pubs_ref()$handle
+    } else {
+      character(0)
+    }
+    
     filtered_data() %>%
       filter(is.na(embargo_date)) %>%
       mutate(
@@ -99,11 +125,12 @@ shinyServer(function(input, output, session) {
           days_old <= 90 ~ "RED",
           TRUE ~ "GREY"
         ),
-        flag = factor(flag, levels = c("RED", "AMBER", "GREEN", "GREY")),
-        flag = if_else(
-          flag == "GREEN" & handle %in% missing_handles,
-          factor("GREEN - MISSING PUB", levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB")),
-          flag
+        flag = factor(flag, levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
+        flag = case_when(
+          flag == "GREEN" & handle %in% missing_handles  ~ factor("GREEN - MISSING PUB",     levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
+          flag == "GREEN" & handle %in% archive_handles  ~ factor("GREEN - ARCHIVE",          levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
+          flag == "GREEN" & handle %in% ref_handles      ~ factor("GREEN - NON-REF COMPLIANT",levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
+          TRUE ~ flag
         ),
         status = "",
         comment = ""
