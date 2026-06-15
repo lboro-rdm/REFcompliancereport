@@ -39,7 +39,7 @@ shinyUI(fluidPage(
       h3("Step 1c: upload the missing pubs archive file"),
       fileInput("missing_pubs_archive_file", "archive.csv", accept = c(".csv")),
       h3("Step 1d: upload the missing pubs non-REF compliantfile"),
-      fileInput("missing_pubs_ref_file", "ref[.csv", accept = c(".csv")),
+      fileInput("missing_pubs_ref_file", "ref.csv", accept = c(".csv")),
       h3("Step 2: choose your report"),
       actionButton("permReportBtn", "Correct Version Report"),
       br(), br(),
@@ -67,7 +67,7 @@ shinyUI(fluidPage(
              tags$li("Include only items that have an embargo date set in the future / permanent embargo"),
              tags$li("Include only journal articles and conference papers with ISSNs")
            ),
-           p("Report 1: Correct version report report"),
+           p("Report 1: Correct version report"),
            tags$ul(
              tags$li("(Assumed that these items do not have the correct version of the file)"),
              tags$li("Includes all items without an embargo end date"),
@@ -96,7 +96,7 @@ shinyUI(fluidPage(
              tags$li("Dates before the above timelines COMPLIANT"),
              tags$li("Unsure if STEM or HASS CHECK")
            ),
-           p("Code last updated: 2026-03-25")
+           p("Code last updated: 2026-06-15")
   )
   
   )

@@ -195,9 +195,9 @@ shinyServer(function(input, output, session) {
   output$downloadReport <- downloadHandler(
     filename = function() {
       if (identical(active_report(), perm_embargo())) {
-        paste0("perm_embargo_report_", Sys.Date(), ".csv")
+        paste0("Correct version report_", Sys.Date(), ".csv")
       } else {
-        paste0("temp_embargo_report_", Sys.Date(), ".csv")
+        paste0("REF compliant embargo report_", Sys.Date(), ".csv")
       }
     },
     content = function(file) {
