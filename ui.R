@@ -78,7 +78,8 @@ shinyUI(fluidPage(
              tags$li("Items with no publication date, flagged as GREEN"),
              tags$li("Items with no publication date, but found on Missing Pubs, flagged as GREEN - MISSING PUB"),
              tags$li("Items with no publication date, but found on Missing Pubs Archive flagged as GREEN - ARCHIVE"),
-             tags$li("Items with no publication date, but found on Missing Pubs non-REF compliant, flagged as GREEN - NON-REF COMPLIANT")
+             tags$li("Items with no publication date, but found on Missing Pubs non-REF compliant, flagged as GREEN - NON-REF COMPLIANT"),
+             tags$li("Items that used to be GREY, but have been checked, are marked as EXCLUDED")
            ),
            p("Report 2: REF compliant embargo report"),
            tags$ul(

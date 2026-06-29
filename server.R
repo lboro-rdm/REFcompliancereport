@@ -6,7 +6,7 @@ library(DT)
 options(shiny.maxRequestSize = 200 * 1024^2)
 
 shinyServer(function(input, output, session) {
-
+  
   # HASS/STEM school lists
   hass_schools <- c(
     "Business and Economics", "Design", "Design and Creative Arts",
@@ -23,9 +23,32 @@ shinyServer(function(input, output, session) {
     "Science", "Sport, Exercise and Health Sciences"
   )
   
+  # --- Exclusion list: read from CSV in app folder, refreshable ---
+  excluded_ids <- reactiveVal(character(0))
+  
+  load_exclusions <- function() {
+    path <- "excluded_articles.csv"
+    if (file.exists(path)) {
+      raw_handles <- read.csv(path) %>%
+        clean_names() %>%
+        pull(handle) %>%
+        as.character()
+      trimmed_handles <- str_trim(raw_handles)
+      ids <- as.integer(str_extract(trimmed_handles, "\\d+$"))  # convert to integer
+      excluded_ids(ids)
+    } else {
+      excluded_ids(integer(0))  # empty integer vector, not character
+    }
+  }
+  
+  # Load on startup
+  load_exclusions()
+  
+  print(excluded_ids)
+  
   # Reactive: read uploaded CSV
   all_data <- reactive({
-    req(input$batch_file)  # ensure file is uploaded
+    req(input$batch_file)
     read.csv(input$batch_file$datapath) %>%
       rename(
         "timeline_pub_date" = "publication_date",
@@ -93,7 +116,7 @@ shinyServer(function(input, output, session) {
       )
   })
   
-  # Reactive: Permanent embargo report - renamed to Correct Version Report
+  # Reactive: Correct Version Report
   perm_embargo <- reactive({
     req(filtered_data())
     
@@ -115,31 +138,38 @@ shinyServer(function(input, output, session) {
       character(0)
     }
     
+    all_flag_levels <- c(
+      "RED", "AMBER", "GREEN", "GREY",
+      "GREEN - MISSING PUB", "GREEN - ARCHIVE",
+      "GREEN - NON-REF COMPLIANT", "EXCLUDED"
+    )
+    
     filtered_data() %>%
       filter(is.na(embargo_date)) %>%
       mutate(
         days_old = as.numeric(Sys.Date() - timeline_pub_date),
         flag = case_when(
-          is.na(timeline_pub_date) ~ "GREEN",
-          days_old <= 60 ~ "AMBER",
-          days_old <= 90 ~ "RED",
-          TRUE ~ "GREY"
+          article_id %in% excluded_ids()               ~ "EXCLUDED",
+          is.na(timeline_pub_date)                     ~ "GREEN",
+          days_old <= 60                               ~ "AMBER",
+          days_old <= 90                               ~ "RED",
+          TRUE                                         ~ "GREY"
         ),
-        flag = factor(flag, levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
+        flag = factor(flag, levels = all_flag_levels),
         flag = case_when(
-          flag == "GREEN" & handle %in% missing_handles  ~ factor("GREEN - MISSING PUB",     levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
-          flag == "GREEN" & handle %in% archive_handles  ~ factor("GREEN - ARCHIVE",          levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
-          flag == "GREEN" & handle %in% ref_handles      ~ factor("GREEN - NON-REF COMPLIANT",levels = c("RED", "AMBER", "GREEN", "GREY", "GREEN - MISSING PUB", "GREEN - ARCHIVE", "GREEN - NON-REF COMPLIANT")),
-          TRUE ~ flag
+          flag == "GREEN" & handle %in% missing_handles ~ factor("GREEN - MISSING PUB",      levels = all_flag_levels),
+          flag == "GREEN" & handle %in% archive_handles ~ factor("GREEN - ARCHIVE",           levels = all_flag_levels),
+          flag == "GREEN" & handle %in% ref_handles     ~ factor("GREEN - NON-REF COMPLIANT", levels = all_flag_levels),
+          TRUE                                          ~ flag
         ),
-        status = "",
+        status  = "",
         comment = ""
       ) %>%
       select(-days_old) %>%
       arrange(flag)
   })
   
-  # Reactive: Temporary embargo report - Renamed to REF Compliant Embargo Report
+  # Reactive: REF Compliant Embargo Report
   temp_embargo <- reactive({
     req(filtered_data())
     filtered_data() %>%
@@ -152,14 +182,15 @@ shinyServer(function(input, output, session) {
         ),
         timeline = interval(timeline_pub_date, embargo_date) %/% months(1),
         flag = case_when(
-          is.na(timeline_pub_date) ~ "IGNORE",
-          year(timeline_pub_date) < 2026 & category == "STEM" & timeline >= 12 ~ "CONTACT RIO",
-          year(timeline_pub_date) < 2026 & category == "HASS" & timeline >= 24 ~ "CONTACT RIO",
-          year(timeline_pub_date) >= 2026 & category == "STEM" & timeline >= 6 ~ "CONTACT RIO",
+          as.character(article_id) %in% excluded_ids()              ~ "EXCLUDED",
+          is.na(timeline_pub_date)                                   ~ "IGNORE",
+          year(timeline_pub_date) < 2026 & category == "STEM"  & timeline >= 12 ~ "CONTACT RIO",
+          year(timeline_pub_date) < 2026 & category == "HASS"  & timeline >= 24 ~ "CONTACT RIO",
+          year(timeline_pub_date) >= 2026 & category == "STEM" & timeline >= 6  ~ "CONTACT RIO",
           year(timeline_pub_date) >= 2026 & category == "HASS" & timeline >= 12 ~ "CONTACT RIO",
           TRUE ~ "COMPLIANT"
         ),
-        flag = factor(flag, levels = c("CHECK", "CONTACT RIO", "COMPLIANT", "IGNORE"))
+        flag = factor(flag, levels = c("CHECK", "CONTACT RIO", "COMPLIANT", "IGNORE", "EXCLUDED"))
       ) %>%
       arrange(flag)
   })
@@ -167,7 +198,6 @@ shinyServer(function(input, output, session) {
   # Reactive value to store the currently active report
   active_report <- reactiveVal(NULL)
   
-  # Buttons to select report
   observeEvent(input$permReportBtn, {
     active_report(perm_embargo())
   })
@@ -176,22 +206,21 @@ shinyServer(function(input, output, session) {
     active_report(temp_embargo())
   })
   
-  # Render table of active report
+  # Render table
   output$reportTable <- renderDT({
     req(active_report())
     datatable(
       active_report(),
       options = list(
-        pageLength = 25,      # rows per page
+        pageLength = 25,
         autoWidth = TRUE,
-        #scrollX = TRUE,       # horizontal scroll if needed
-        orderClasses = TRUE   # highlights sorted column
+        orderClasses = TRUE
       ),
       rownames = FALSE
     )
   })
   
-  # Download handler for active report
+  # Download handler
   output$downloadReport <- downloadHandler(
     filename = function() {
       if (identical(active_report(), perm_embargo())) {
