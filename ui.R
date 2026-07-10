@@ -97,7 +97,7 @@ shinyUI(fluidPage(
              tags$li("Dates before the above timelines COMPLIANT"),
              tags$li("Unsure if STEM or HASS CHECK")
            ),
-           p("Code last updated: 2026-06-15")
+           p("Code last updated: 2026-07-10")
   )
   
   )

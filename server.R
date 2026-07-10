@@ -26,27 +26,35 @@ shinyServer(function(input, output, session) {
   # --- Exclusion list: read from CSV in app folder, refreshable ---
   excluded_ids <- reactiveVal(character(0))
   
+  excluded_reasons <- reactiveVal(data.frame(article_id = integer(0), reason = character(0)))
+  
   load_exclusions <- function() {
     path <- "excluded_articles.csv"
     if (file.exists(path)) {
-      raw_handles <- read.csv(path) %>%
-        clean_names() %>%
-        pull(handle) %>%
-        as.character()
-      trimmed_handles <- str_trim(raw_handles)
+      raw <- read.csv(path) %>%
+        clean_names()
+      
+      trimmed_handles <- str_trim(as.character(raw$handle))
       ids <- as.integer(str_extract(trimmed_handles, "\\d+$"))  # convert to integer
+      
       excluded_ids(ids)
+      excluded_reasons(data.frame(
+        article_id = ids,
+        reason     = str_trim(as.character(raw$reason)),
+        stringsAsFactors = FALSE
+      ))
     } else {
-      excluded_ids(integer(0))  # empty integer vector, not character
+      excluded_ids(integer(0))
+      excluded_reasons(data.frame(article_id = integer(0), reason = character(0)))
     }
   }
   
   # Load on startup
   load_exclusions()
   
-  print(excluded_ids)
+## REACTIVE SOT LOAD CSV
   
-  # Reactive: read uploaded CSV
+  # Reactive: read uploaded batch CSV
   all_data <- reactive({
     req(input$batch_file)
     read.csv(input$batch_file$datapath) %>%
@@ -61,12 +69,14 @@ shinyServer(function(input, output, session) {
       )
   })
   
+  # Reactive: read uploaded missing pubs CSV
   missing_pubs <- reactive({
     req(input$missing_pubs_file)
     read.csv(input$missing_pubs_file$datapath) %>%
       clean_names()
   })
   
+  # Reactive: read uploaded archive CSV
   missing_pubs_archive <- reactive({
     req(input$missing_pubs_archive_file)
     read.csv(input$missing_pubs_archive_file$datapath) %>%
@@ -74,6 +84,7 @@ shinyServer(function(input, output, session) {
       rename(handle = id)
   })
   
+  # Reactive: read uploaded non-ref compliant CSV
   missing_pubs_ref <- reactive({
     req(input$missing_pubs_ref_file)
     read.csv(input$missing_pubs_ref_file$datapath) %>%
@@ -81,7 +92,9 @@ shinyServer(function(input, output, session) {
       rename(handle = id)
   })
   
-  # Reactive: filtered embargoed data
+## REACTIVES TO CLEAN DATA
+  
+  # Reactive: filtered embargoed data - cleans batch to only include thos that are embargoed and are the right type
   embargoed_data <- reactive({
     req(all_data())
     all_data() %>%
@@ -94,7 +107,7 @@ shinyServer(function(input, output, session) {
       arrange(embargo_date)
   })
   
-  # Reactive: filtered_data base
+  # Reactive: filtered_data base - creates a report with selected columns instead of the hundreds that are available on batch
   filtered_data <- reactive({
     req(embargoed_data())
     embargoed_data() %>%
@@ -106,7 +119,7 @@ shinyServer(function(input, output, session) {
       mutate(
         handle = if_else(
           !is.na(handle),
-          paste0("https://hdl.handle.net/", handle),
+          paste0("https://hdl.handle.net/", handle), # handles changed to URLs
           NA_character_
         ),
         months_to_embargo = case_when(
@@ -120,20 +133,26 @@ shinyServer(function(input, output, session) {
   perm_embargo <- reactive({
     req(filtered_data())
     
+    # Strip a trailing ".vN" version suffix so it matches the base `handle` field
+    # e.g. "2134/24877332.v1" -> "2134/24877332"
+    strip_version <- function(x) {
+      sub("\\.v[0-9]+$", "", x)
+    }
+    
     missing_handles <- if (!is.null(input$missing_pubs_file)) {
-      missing_pubs()$handle
+      strip_version(missing_pubs()$handle)
     } else {
       character(0)
     }
     
     archive_handles <- if (!is.null(input$missing_pubs_archive_file)) {
-      missing_pubs_archive()$handle
+      strip_version(missing_pubs_archive()$handle)
     } else {
       character(0)
     }
     
     ref_handles <- if (!is.null(input$missing_pubs_ref_file)) {
-      missing_pubs_ref()$handle
+      strip_version(missing_pubs_ref()$handle)
     } else {
       character(0)
     }
@@ -146,6 +165,7 @@ shinyServer(function(input, output, session) {
     
     filtered_data() %>%
       filter(is.na(embargo_date)) %>%
+      left_join(excluded_reasons(), by = "article_id") %>% 
       mutate(
         days_old = as.numeric(Sys.Date() - timeline_pub_date),
         flag = case_when(
@@ -162,10 +182,10 @@ shinyServer(function(input, output, session) {
           flag == "GREEN" & handle %in% ref_handles     ~ factor("GREEN - NON-REF COMPLIANT", levels = all_flag_levels),
           TRUE                                          ~ flag
         ),
-        status  = "",
-        comment = ""
+        comment = if_else(flag == "EXCLUDED", reason, "")
       ) %>%
-      select(-days_old) %>%
+      select(-days_old, -reason) %>%
+      relocate(comment, .after = flag) %>%
       arrange(flag)
   })
   
